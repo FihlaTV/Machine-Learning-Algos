@@ -52,5 +52,27 @@ y_pred = classifier.predict(X_test)
 from sklearn.metrics import confusion_matrix
 cm = confusion_matrix(y_test, y_pred)
 
+# Testing on my own data
 
-print("Finish")
+test_data=[
+    "it was a wonderful story.. had fun with my wife",
+    "the plot line sucked",
+    "it has got nothing in it, dont waste your time and money",
+    "what the fuck"
+]
+
+test_array=[]
+
+for test_review in test_data:
+    test_review= test_review.lower()
+    test_review= test_review.split()
+    ps= PorterStemmer()
+    test_review = [ps.stem(word) for word in test_review if word not in set(stopwords.words('english'))]
+    test_review= ' '.join(test_review)
+    test_array.append(test_review)
+
+X= cv.transform(test_array).toarray()
+
+y_pred = classifier.predict(X)
+
+print("finish")
