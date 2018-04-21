@@ -1,78 +1,71 @@
-#Natural language processing
+# Natural language processing
 
-#Importing library
+# Importing library
 import numpy as np
 import pandas as pd
+from sklearn.base import TransformerMixin
+from sklearn.externals import joblib
 import matplotlib.pyplot as plt
 
-#Importing the Data Set
-dataset= pd.read_csv("Restaurant_Reviews.tsv", delimiter='\t', quoting=3)
+# Importing the Data Set
+from sklearn.pipeline import Pipeline, FeatureUnion
+from sklearn.preprocessing import FunctionTransformer
+from sklearn.svm import LinearSVC
 
-#Cleaning the texts
+dataset = pd.read_csv("Restaurant_Reviews.tsv", delimiter='\t', quoting=3)
+
+# Cleaning the texts
 import re
-import nltk
-nltk.download('stopwords')
 from nltk.corpus import stopwords
 from nltk.stem import PorterStemmer
-corpus=[]
+
+corpus = []
 
 for n in range(0, 1000):
-    review= re.sub('[^a-zA-Z]',' ', dataset['Review'][n])
-    review= review.lower()
-    review= review.split()
-    #to convert all tense to present
-    ps= PorterStemmer()
-    #removing conjugation
-    review= [ps.stem(word) for word in review if not word in set(stopwords.words('english'))]
-    review= ' '.join(review)
+    review = re.sub('[^a-zA-Z]', ' ', dataset['Review'][n])
+    review = review.lower()
+    review = review.split()
+    # to convert all tense to present
+    ps = PorterStemmer()
+    # removing conjugation
+    review = [ps.stem(word) for word in review if not word in set(stopwords.words('english'))]
+    review = ' '.join(review)
     corpus.append(review)
 
-#Creating bag of words
+# Creating bag of words
 from sklearn.feature_extraction.text import CountVectorizer
-cv= CountVectorizer(max_features= 1500)
-X= cv.fit_transform(corpus).toarray()
-y= dataset.iloc[:,1].values
+print(corpus.shape)
+cv = CountVectorizer(max_features=1500)
+X = cv.fit_transform(corpus)
+y = dataset.iloc[:, 1].values
 
-#Training the model
+# Training the model
 
 # Splitting the dataset into the Training set and Test set
 from sklearn.cross_validation import train_test_split
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size = 0.10, random_state = 0)
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.10, random_state=0)
 
 # Fitting classifier to the Training set
-from sklearn.naive_bayes import GaussianNB
-classifier= GaussianNB()
-classifier.fit(X_train, y_train)
+from sklearn.naive_bayes import MultinomialNB
 
+classifier = LinearSVC()
+classifier.fit(X_train, y_train)
 
 # Predicting the Test set results
 y_pred = classifier.predict(X_test)
 
 # Making the Confusion Matrix
 from sklearn.metrics import confusion_matrix
+
 cm = confusion_matrix(y_test, y_pred)
 
-# Testing on my own data
+# Saving my classifier
+from sklearn.feature_extraction.text import TfidfTransformer
 
-test_data=[
-    "it was a wonderful story.. had fun with my wife",
-    "the plot line sucked",
-    "it has got nothing in it, dont waste your time and money",
-    "what the fuck"
-]
 
-test_array=[]
+vec_clf = Pipeline([
+    ('cv', cv),
+    ('classifier', classifier)])
 
-for test_review in test_data:
-    test_review= test_review.lower()
-    test_review= test_review.split()
-    ps= PorterStemmer()
-    test_review = [ps.stem(word) for word in test_review if word not in set(stopwords.words('english'))]
-    test_review= ' '.join(test_review)
-    test_array.append(test_review)
-
-X= cv.transform(test_array).toarray()
-
-y_pred = classifier.predict(X)
-
-print("finish")
+joblib.dump(vec_clf, 'class.pkl', compress=9)
